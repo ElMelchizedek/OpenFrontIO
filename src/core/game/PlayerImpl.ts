@@ -9,6 +9,7 @@ import {
   ColoredTeams,
   Embargo,
   EmojiMessage,
+  Game,
   GameMode,
   GameType,
   Gold,
@@ -24,8 +25,7 @@ import {
   TerraNullius,
   Tick,
   Unit,
-  UnitParams,
-  UnitType,
+  UnitParams, UnitType,
 } from "./Game";
 import {
   AllianceView,
@@ -1203,5 +1203,12 @@ export class PlayerImpl implements Player {
     }
 
     return weightedPorts;
+  }
+
+  isLandLocked(mg: Game): boolean {
+    const tiles: TileRef[] = Array.from(this.borderTiles()).filter(
+      (certain_tile) => mg.map().isOceanShore(certain_tile),
+    );
+    return tiles.length === 0;
   }
 }

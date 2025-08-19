@@ -526,6 +526,7 @@ export type Player = {
   numTilesOwned(): number;
   conquer(tile: TileRef): void;
   relinquish(tile: TileRef): void;
+  isLandLocked(mg: Game): boolean;
 
   // Resources & Troops
   gold(): Gold;

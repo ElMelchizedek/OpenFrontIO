@@ -425,7 +425,8 @@ export class FakeHumanExecution implements Execution {
       this.maybeSpawnStructure(UnitType.Port) ||
       this.maybeSpawnWarship() ||
       this.maybeSpawnStructure(UnitType.Factory) ||
-      this.maybeSpawnStructure(UnitType.MissileSilo)
+      this.maybeSpawnStructure(UnitType.MissileSilo) ||
+      this.maybeSpawnStructure(UnitType.DefensePost)
     );
   }
 
@@ -438,14 +439,17 @@ export class FakeHumanExecution implements Execution {
     if (this.player.gold() < perceivedCost) {
       return false;
     }
+
     const tile = this.structureSpawnTile(type);
     if (tile === null) {
       return false;
     }
+
     const canBuild = this.player.canBuild(type, tile);
     if (canBuild === false) {
       return false;
     }
+
     this.mg.addExecution(new ConstructionExecution(this.player, type, tile));
     return true;
   }
@@ -539,6 +543,26 @@ export class FakeHumanExecution implements Execution {
           }
 
           // TODO: Cities and factories should consider train range limits
+          return w;
+        };
+      case UnitType.DefensePost:
+        return (tile) => {
+          if (this.player === null) throw new Error("not initialized");
+          // Make sure that nations aren't too cautious and start out with building defence posts:
+          // nudge them along to first build more fundamental structures before worrying about defence.
+          if (this.player.unitsOwned(UnitType.City) === 0 ||
+            (!this.player.isLandLocked(this.mg) && this.player.unitsOwned(UnitType.Port) === 0)) return -Infinity;
+
+          let w = 0;
+
+          w += mg.magnitude(tile);
+
+          for (const certain_tile of borderTiles) {
+            const distance = this.mg.manhattanDist(certain_tile, tile);
+            if (distance <= borderSpacing) w = distance;
+            if (w !== 0) console.log(this.player?.displayName() + " is gonna build a Defence Post.");
+          }
+
           return w;
         };
       default:
