@@ -278,12 +278,6 @@ export class PlayerInfoOverlay extends LitElement implements Layer {
                 ${translateText("player_info_overlay.gold")}:
                 ${renderNumber(player.gold())}
               </div>
-              <div class="text-sm opacity-80" translate="no">
-                Fear: ${this.player?.getFear()}
-              </div>
-              <div class="text-sm opacity-80" translate="no">
-                Attack Duration: ${this.player?.getAttackDuration()}
-              </div>
               ${this.displayUnitCount(
                 player,
                 UnitType.Port,
