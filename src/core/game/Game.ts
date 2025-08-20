@@ -520,6 +520,12 @@ export type Player = {
   hasSpawned(): boolean;
   setHasSpawned(hasSpawned: boolean): void;
 
+  getFear(): number;
+  setFear(new_fear: number): void;
+
+  getAttackDuration(): number;
+  setAttackDuration(new_duration: number): void;
+
   // Territory
   tiles(): ReadonlySet<TileRef>;
   borderTiles(): ReadonlySet<TileRef>;

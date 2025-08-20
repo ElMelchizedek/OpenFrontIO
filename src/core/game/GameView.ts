@@ -359,6 +359,24 @@ export class PlayerView {
   canDeleteUnit(): boolean {
     return true;
   }
+
+  setFear(new_fear: number) {
+    this.data.fear = new_fear;
+  }
+
+  getFear(): number {
+    if (this.data.fear) return this.data.fear;
+    return 0;
+  }
+
+  setAttackDuration(new_duration: number) {
+    this.data.attackDuration = new_duration;
+  }
+
+  getAttackDuration() {
+    if (this.data.attackDuration) return this.data.attackDuration;
+    return 0;
+  }
 }
 
 export class GameView implements GameMap {
