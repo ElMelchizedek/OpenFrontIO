@@ -254,7 +254,7 @@ export class BotBehavior {
       const bot_count = players.filter((p) => p.info().playerType === PlayerType.Bot).length;
       const early_game = bot_count / players.length >= 0.5;
       // Logarithmic growth of fear.
-      const growth_rate = early_game ? 15 : 30;
+      const growth_rate = early_game ? 20 : 40;
       const fear_increase = growth_rate * Math.log(this.player.getAttackDuration() + 1);
       this.player.setFear(Math.min(fear_increase, 100));
     } else {

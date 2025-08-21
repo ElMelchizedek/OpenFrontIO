@@ -462,12 +462,53 @@ export class FakeHumanExecution implements Execution {
 
   private structureSpawnTile(type: UnitType): TileRef | null {
     if (this.player === null) throw new Error("not initialized");
-    const tiles =
-      type === UnitType.Port
-        ? Array.from(this.player.borderTiles()).filter((t) =>
-          this.mg.isOceanShore(t),
-        )
-        : Array.from(this.player.tiles());
+
+    let tiles: number[] = [];
+    const enemies: Player[] = [];
+    if (type === UnitType.Port) {
+      tiles = Array.from(this.player.borderTiles()).filter((t) =>
+        this.mg.isOceanShore(t));
+    } else if (type === UnitType.DefensePost) {
+      // Finds the enemies of the nation.
+      for (const relation of this.player.allRelationsSorted()) {
+        if (relation.relation < 50) enemies.push(relation.player);
+      }
+      // Sorts all tiles based on which player they are closest to.
+      const all_tiles = this.player.tiles();
+      type TileByPlayer = {
+        tile: TileRef;
+        player: Player;
+      };
+      const sorted_tiles: TileByPlayer[] = [];
+      for (const tile of all_tiles) {
+        let closest_neighbour: Player | undefined;
+        let closest_distance = Infinity;
+        for (const neighbour of this.player.neighbors()) {
+          if (neighbour.isPlayer()) {
+            const tiles_neighbour = Array.from(neighbour.tiles());
+            // We'll assess the distance by comparing the selected tile to a random tile of
+            // the neighbour in question.
+            const distance = this.mg.manhattanDist(
+              tile, tiles_neighbour[Math.floor(Math.random() * tiles_neighbour.length)]);
+            if (distance < closest_distance) {
+              closest_distance = distance;
+              closest_neighbour = neighbour;
+            }
+          }
+        }
+        if (closest_neighbour?.isPlayer()) {
+          const next_tile: TileByPlayer = {
+            player: closest_neighbour,
+            tile,
+          };
+          sorted_tiles.push(next_tile);
+        }
+      }
+      tiles = Array.from(sorted_tiles.filter(
+        (element) => enemies.includes(element.player)).map(
+        (element) => element.tile,
+      ));
+    }
     if (tiles.length === 0) return null;
     const valueFunction = this.structureSpawnTileValue(type);
     let bestTile: TileRef | null = null;
@@ -557,6 +598,7 @@ export class FakeHumanExecution implements Execution {
 
           let w = 0;
 
+          // Prefer to be as high as possible in elevation.
           w += mg.magnitude(tile);
 
           for (const certain_tile of borderTiles) {
