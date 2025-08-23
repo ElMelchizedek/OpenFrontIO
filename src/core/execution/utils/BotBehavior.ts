@@ -1,12 +1,4 @@
-import {
-  AllianceRequest,
-  Game,
-  Player,
-  PlayerType,
-  Relation,
-  TerraNullius,
-  Tick,
-} from "../../game/Game";
+import { AllianceRequest, Attack, Game, Player, PlayerType, Relation, TerraNullius, Tick } from "../../game/Game";
 import { AllianceExtensionExecution } from "../alliance/AllianceExtensionExecution";
 import { AttackExecution } from "../AttackExecution";
 import { EmojiExecution } from "../EmojiExecution";
@@ -16,6 +8,7 @@ import { flattenedEmojiTable } from "../../Util";
 export class BotBehavior {
   private enemy: Player | null = null;
   private enemyUpdated: Tick;
+  private readonly rememberedAttacks: Attack[] = [];
 
   private readonly assistAcceptEmoji = flattenedEmojiTable.indexOf("👍");
 
@@ -93,6 +86,7 @@ export class BotBehavior {
     let largestAttack = 0;
     let largestAttacker: Player | undefined;
     for (const attack of incomingAttacks) {
+      if (attack === undefined) continue;
       if (attack.troops() <= largestAttack) continue;
       largestAttack = attack.troops();
       largestAttacker = attack.attacker();
@@ -245,6 +239,32 @@ export class BotBehavior {
         target.isPlayer() ? target.id() : null,
       ),
     );
+  }
+
+  attenuateFear() {
+    const incomingAttacks = this.player.incomingAttacks() ?? [];
+    const old_fear = this.player.getFear();
+    if (incomingAttacks.length > 0) {
+      // Let us arbitrarily define the "early game" as that point where a third
+      // or more of players are bots. Then we make it so that nations will have a
+      // subdued spike in fear if it's still the early game, to dissuade early
+      // defences.
+      this.player.setAttackDuration(this.player.getAttackDuration() + 1);
+      const players = this.game.players();
+      const bot_count = players.filter((p) => p.info().playerType === PlayerType.Bot).length;
+      const early_game = bot_count / players.length >= 0.5;
+      // Logarithmic growth of fear.
+      const growth_rate = early_game ? 20 : 40;
+      const fear_increase = growth_rate * Math.log(this.player.getAttackDuration() + 1);
+      this.player.setFear(Math.min(fear_increase, 100));
+    } else {
+      // No attacks
+      this.player.setAttackDuration(0);
+      this.player.setFear(this.player.getFear() * 0.8);
+    };
+    if (old_fear !== this.player.getFear()) {
+      console.log(this.player.displayName() + "'s old fear was " + old_fear + ", now it's " + this.player.getFear());
+    }
   }
 }
 

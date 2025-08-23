@@ -9,6 +9,7 @@ import {
   ColoredTeams,
   Embargo,
   EmojiMessage,
+  Game,
   GameMode,
   GameType,
   Gold,
@@ -24,8 +25,7 @@ import {
   TerraNullius,
   Tick,
   Unit,
-  UnitParams,
-  UnitType,
+  UnitParams, UnitType,
 } from "./Game";
 import {
   AllianceView,
@@ -72,6 +72,8 @@ export class PlayerImpl implements Player {
 
   private _gold: bigint;
   private _troops: bigint;
+  private _fear: number;
+  private _attackDuration: number;
 
   markedTraitorTick = -1;
 
@@ -117,6 +119,8 @@ export class PlayerImpl implements Player {
     this._gold = 0n;
     this._displayName = this._name;
     this._pseudo_random = new PseudoRandom(simpleHash(this.playerInfo.id));
+    this._fear = 0.0;
+    this._attackDuration = 0;
   }
 
   largestClusterBoundingBox: { min: Cell; max: Cell } | null;
@@ -177,6 +181,7 @@ export class PlayerImpl implements Player {
       ),
       hasSpawned: this.hasSpawned(),
       betrayals: stats?.betrayals,
+      fear: this._fear,
     };
     /* eslint-enable sort-keys */
   }
@@ -1203,5 +1208,28 @@ export class PlayerImpl implements Player {
     }
 
     return weightedPorts;
+  }
+
+  isLandLocked(mg: Game): boolean {
+    const tiles: TileRef[] = Array.from(this.borderTiles()).filter(
+      (certain_tile) => mg.map().isOceanShore(certain_tile),
+    );
+    return tiles.length === 0;
+  }
+
+  getFear(): number {
+    return this._fear;
+  }
+
+  setFear(new_fear: number) {
+    this._fear = new_fear;
+  }
+
+  getAttackDuration(): number {
+    return this._attackDuration;
+  }
+
+  setAttackDuration(new_duration: number) {
+    this._attackDuration = new_duration;
   }
 }

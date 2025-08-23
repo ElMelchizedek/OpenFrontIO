@@ -98,7 +98,8 @@ export class FakeHumanExecution implements Execution {
       /* When player is hostile starts embargo. Do not stop until neutral again */
       if (
         player.relation(other) <= Relation.Hostile &&
-        !player.hasEmbargoAgainst(other)
+        !player.hasEmbargoAgainst(other) &&
+        !player.isOnSameTeam(other)
       ) {
         player.addEmbargo(other, false);
       } else if (
@@ -153,6 +154,7 @@ export class FakeHumanExecution implements Execution {
       return;
     }
 
+    this.behavior.attenuateFear();
     this.updateRelationsFromEmbargos();
     this.behavior.handleAllianceRequests();
     this.behavior.handleAllianceExtensionRequests();
@@ -442,26 +444,75 @@ export class FakeHumanExecution implements Execution {
     if (this.player.gold() < perceivedCost) {
       return false;
     }
+
     const tile = this.structureSpawnTile(type);
     if (tile === null) {
       return false;
     }
+
     const canBuild = this.player.canBuild(type, tile);
     if (canBuild === false) {
       return false;
     }
+    // Makes it so that we will only allow nations to build defence posts very rarely, unless they are being attacked
+    // enough so that it warrants putting defence front and centre in their minds.
+    if (type === UnitType.DefensePost && this.behavior) {
+      if (this.player.getFear() < 50) return false;
+    }
+
     this.mg.addExecution(new ConstructionExecution(this.player, type, tile));
     return true;
   }
 
   private structureSpawnTile(type: UnitType): TileRef | null {
     if (this.player === null) throw new Error("not initialized");
-    const tiles =
-      type === UnitType.Port
-        ? Array.from(this.player.borderTiles()).filter((t) =>
-          this.mg.isOceanShore(t),
-        )
-        : Array.from(this.player.tiles());
+
+    let tiles: number[] = [];
+    const enemies: Player[] = [];
+    if (type === UnitType.Port) {
+      tiles = Array.from(this.player.borderTiles()).filter((t) =>
+        this.mg.isOceanShore(t));
+    } else if (type === UnitType.DefensePost) {
+      // Finds the enemies of the nation.
+      for (const relation of this.player.allRelationsSorted()) {
+        if (relation.relation < 50) enemies.push(relation.player);
+      }
+      // Sorts all tiles based on which player they are closest to.
+      const all_tiles = this.player.tiles();
+      type TileByPlayer = {
+        tile: TileRef;
+        player: Player;
+      };
+      const sorted_tiles: TileByPlayer[] = [];
+      for (const tile of all_tiles) {
+        let closest_neighbour: Player | undefined;
+        let closest_distance = Infinity;
+        for (const neighbour of this.player.neighbors()) {
+          if (neighbour.isPlayer()) {
+            const tiles_neighbour = Array.from(neighbour.tiles());
+            // We'll assess the distance by comparing the selected tile to a random tile of
+            // the neighbour in question.
+            const distance = this.mg.manhattanDist(
+              tile, tiles_neighbour[Math.floor(Math.random() * tiles_neighbour.length)]);
+            if (distance < closest_distance) {
+              closest_distance = distance;
+              closest_neighbour = neighbour;
+            }
+          }
+        }
+        if (closest_neighbour?.isPlayer()) {
+          const next_tile: TileByPlayer = {
+            player: closest_neighbour,
+            tile,
+          };
+          sorted_tiles.push(next_tile);
+        }
+      }
+      tiles = Array.from(sorted_tiles.filter(
+        (element) => enemies.includes(element.player)).map(
+        (element) => element.tile,
+      ));
+    }
     if (tiles.length === 0) return null;
     const valueFunction = this.structureSpawnTileValue(type);
     let bestTile: TileRef | null = null;
@@ -586,6 +637,22 @@ export class FakeHumanExecution implements Execution {
 
           // Prefer to be away from other structures of the same type
           w = spaceStructures(tile, w);
+
+          return w;
+        };
+      case UnitType.DefensePost:
+        return (tile) => {
+          if (this.player === null) throw new Error("not initialized");
+
+          let w = 0;
+
+          // Prefer to be as high as possible in elevation.
+          w += mg.magnitude(tile);
+
+          for (const certain_tile of borderTiles) {
+            const distance = this.mg.manhattanDist(certain_tile, tile);
+            if (distance <= borderSpacing) w = distance;
+          }
 
           return w;
         };

@@ -520,12 +520,19 @@ export type Player = {
   hasSpawned(): boolean;
   setHasSpawned(hasSpawned: boolean): void;
 
+  getFear(): number;
+  setFear(new_fear: number): void;
+
+  getAttackDuration(): number;
+  setAttackDuration(new_duration: number): void;
+
   // Territory
   tiles(): ReadonlySet<TileRef>;
   borderTiles(): ReadonlySet<TileRef>;
   numTilesOwned(): number;
   conquer(tile: TileRef): void;
   relinquish(tile: TileRef): void;
+  isLandLocked(mg: Game): boolean;
 
   // Resources & Troops
   gold(): Gold;

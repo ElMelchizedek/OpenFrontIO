@@ -168,6 +168,8 @@ export type PlayerUpdate = {
   alliances: AllianceView[];
   hasSpawned: boolean;
   betrayals?: bigint;
+  fear?: number;
+  attackDuration?: number;
 };
 
 export type AllianceView = {
