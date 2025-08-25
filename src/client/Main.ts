@@ -91,8 +91,8 @@ class Client {
   private flagInput: FlagInput | null = null;
   private darkModeButton: DarkModeButton | null = null;
 
-  private joinModal: JoinPrivateLobbyModal;
-  private publicLobby: PublicLobby;
+  private joinModal: JoinPrivateLobbyModal | undefined;
+  private publicLobby: PublicLobby | undefined;
   private readonly userSettings: UserSettings = new UserSettings();
 
   constructor() {}
@@ -220,14 +220,7 @@ class Client {
     if (patternButton === null)
       throw new Error("territory-patterns-input-preview-button");
     territoryModal.previewButton = patternButton;
-    territoryModal.updatePreview();
-    territoryModal.resizeObserver = new ResizeObserver((entries) => {
-      for (const entry of entries) {
-        if (entry.target.classList.contains("preview-container")) {
-          territoryModal.buttonWidth = entry.contentRect.width;
-        }
-      }
-    });
+    territoryModal.refresh();
     patternButton.addEventListener("click", () => {
       territoryModal.open();
     });
@@ -365,7 +358,7 @@ class Client {
     hostLobbyButton.addEventListener("click", () => {
       if (this.usernameInput?.isValid()) {
         hostModal.open();
-        this.publicLobby.leaveLobby();
+        this.publicLobby?.leaveLobby();
       }
     });
 
@@ -380,7 +373,7 @@ class Client {
       throw new Error("Missing join-private-lobby-button");
     joinPrivateLobbyButton.addEventListener("click", () => {
       if (this.usernameInput?.isValid()) {
-        this.joinModal.open();
+        this.joinModal?.open();
       }
     });
 
@@ -395,7 +388,7 @@ class Client {
 
     const onHashUpdate = () => {
       // Reset the UI to its initial state
-      this.joinModal.close();
+      this.joinModal?.close();
       if (this.gameStop !== null) {
         this.handleLeaveLobby();
       }
@@ -449,7 +442,7 @@ class Client {
       }
       const lobbyId = params.get("join");
       if (lobbyId && ID.safeParse(lobbyId).success) {
-        this.joinModal.open(lobbyId);
+        this.joinModal?.open(lobbyId);
         console.log(`joining lobby ${lobbyId}`);
       }
     }
@@ -509,7 +502,7 @@ class Client {
             modal.isModalOpen = false;
           }
         });
-        this.publicLobby.stop();
+        this.publicLobby?.stop();
         document.querySelectorAll(".ad").forEach((ad) => {
           (ad as HTMLElement).style.display = "none";
         });
@@ -522,8 +515,8 @@ class Client {
         startingModal.show();
       },
       () => {
-        this.joinModal.close();
-        this.publicLobby.stop();
+        this.joinModal?.close();
+        this.publicLobby?.stop();
         incrementGamesPlayed();
 
         try {
@@ -550,7 +543,7 @@ class Client {
     console.log("leaving lobby, cancelling game");
     this.gameStop();
     this.gameStop = null;
-    this.publicLobby.leaveLobby();
+    this.publicLobby?.leaveLobby();
   }
 
   private handleKickPlayer(event: CustomEvent<KickPlayerEvent>) {
